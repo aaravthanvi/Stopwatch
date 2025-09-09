@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Stopwatch</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, Arial, sans-serif; display: grid; place-items: center; min-height: 100vh; margin: 0; }
+    .wrap { width: min(520px, 92vw); text-align: center; }
+    .time { font-size: clamp(2rem, 8vw, 4rem); letter-spacing: 0.03em; font-variant-numeric: tabular-nums; margin: 16px 0 8px; }
+    .sub { color: #888; font-size: 0.95rem; margin-bottom: 16px; }
+    .controls { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 12px; }
+    button { padding: 10px 16px; font-size: 1rem; border-radius: 10px; border: 1px solid #ccc; cursor: pointer; }
+    button.primary { background: #2b8a3e; color: white; border-color: #2b8a3e; }
+    button.warn { background: #d9480f; color: white; border-color: #d9480f; }
+    ul { list-style: none; padding: 0; margin: 10px auto; max-height: 200px; overflow: auto; text-align: left; }
+    li { padding: 6px 10px; border-bottom: 1px solid #ddd; font-variant-numeric: tabular-nums; }
+    .hint { font-size: 0.9rem; color: #666; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Stopwatch</h1>
+    <div class="time" id="display">00:00:00.000</div>
+    <div class="sub" id="status">Paused</div>
+
+    <div class="controls">
+      <button id="start" class="primary">Start</button>
+      <button id="pause">Pause</button>
+      <button id="reset" class="warn">Reset</button>
+      <button id="lap">Lap</button>
+    </div>
+
+    <ul id="laps"></ul>
+    <div class="hint">Keys: Space = Start/Pause, L = Lap, R = Reset</div>
+  </div>
+
+  <script>
+    const display = document.getElementById('display');
+    const statusEl = document.getElementById('status');
+    const lapsEl = document.getElementById('laps');
+    const btnStart = document.getElementById('start');
+    const btnPause = document.getElementById('pause');
+    const btnReset = document.getElementById('reset');
+    const btnLap = document.getElementById('lap');
+
+    let startTime = 0;       // timestamp where current run started
+    let elapsed = 0;         // total elapsed ms (accumulates across pauses)
+    let rafId = null;        // requestAnimationFrame id
+    let lapCount = 0;
+
+    function format(ms) {
+      const totalMs = Math.floor(ms);
+      const milli = totalMs % 1000;
+      const totalSec = Math.floor(totalMs / 1000);
+      const sec = totalSec % 60;
+      const min = Math.floor(totalSec / 60) % 60;
+      const hr = Math.floor(totalSec / 3600);
+      const pad = (n, w=2) => String(n).padStart(w, '0');
+      return `${pad(hr)}:${pad(min)}:${pad(sec)}.${String(milli).padStart(3,'0')}`;
+    }
+
+    function updateDisplay() {
+      display.textContent = format(elapsed);
+    }
+
+    function tick(timestamp) {
+      // timestamp is a high‑resolution time from rAF, similar to performance.now()
+      elapsed = timestamp - startTime;
+      updateDisplay();
+      rafId = requestAnimationFrame(tick);
+    }
+
+    function start() {
+      if (rafId !== null) return;              // already running
+      // Align start to current high‑res time minus already elapsed to resume smoothly
+      const now = performance.now();
+      startTime = now - elapsed;
+      statusEl.textContent = 'Running';
+      rafId = requestAnimationFrame(tick);
+    }
+
+    function pause() {
+      if (rafId === null) return;
+      cancelAnimationFrame(rafId);
+      rafId = null;
+      // elapsed already holds total; keep it for resume
+      statusEl.textContent = 'Paused';
+      updateDisplay();
+    }
+
+    function reset() {
+      pause();
+      elapsed = 0;
+      lapCount = 0;
+      lapsEl.innerHTML = '';
+      updateDisplay();
+      statusEl.textContent = 'Paused';
+    }
+
+    function lap() {
+      if (rafId === null && elapsed === 0) return; // ignore if never started
+      lapCount += 1;
+      const li = document.createElement('li');
+      li.textContent = `Lap ${lapCount}: ${format(elapsed)}`;
+      lapsEl.prepend(li);
+    }
+
+    // Button events
+    btnStart.addEventListener('click', start);
+    btnPause.addEventListener('click', pause);
+    btnReset.addEventListener('click', reset);
+    btnLap.addEventListener('click', lap);
+
+    // Keyboard shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') { e.preventDefault(); (rafId === null ? start : pause)(); }
+      else if (e.key.toLowerCase() === 'r') { reset(); }
+      else if (e.key.toLowerCase() === 'l') { lap(); }
+    });
+
+    // Initialize
+    updateDisplay();
+  </script>
+</body>
+</html>
