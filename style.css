@@ -1,0 +1,5 @@
+:root { color-scheme: light dark; }
+html,body { margin:0; height:100%; background:#111; }
+#game { display:block; margin:0 auto; background:#222; touch-action:none; }
+#hud { position:fixed; top:10px; left:50%; transform:translateX(-50%); color:#fff; font:600 16px system-ui, Arial; display:flex; gap:12px; align-items:center; }
+#restart { padding:8px 12px; border-radius:8px; border:1px solid #555; background:#2b8a3e; color:#fff; }
